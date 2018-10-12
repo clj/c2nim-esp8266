@@ -1,0 +1,3 @@
+[submodule "src/c2nim"]
+	path = src/c2nim
+	url = https://github.com/nim-lang/c2nim

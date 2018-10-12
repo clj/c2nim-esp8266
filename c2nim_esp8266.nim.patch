@@ -1,0 +1,40 @@
+--- src/c2nim/c2nim.nim	2018-10-10 00:18:52.000000000 +0100
++++ src/c2nim_esp8266.nim	2019-07-28 17:02:26.000000000 +0100
+@@ -8,19 +8,22 @@
+ #
+ 
+ import
+-  strutils, os, times, parseopt, compiler/llstream, compiler/ast,
+-  compiler/renderer, compiler/options, compiler/msgs,
+-  clex, cparse, postprocessor, compiler/nversion
++  strutils, os, times, parseopt, c2nim/compiler/llstream, c2nim/compiler/ast,
++  c2nim/compiler/renderer, c2nim/compiler/options, c2nim/compiler/msgs,
++  c2nim/clex, c2nim/cparse, c2nim/postprocessor, c2nim/compiler/nversion
+ 
+ when declared(NimCompilerApiVersion):
+-  import compiler / [lineinfos, pathutils]
++  import c2nim/compiler / [lineinfos, pathutils]
++
++import
++  esp8266_postprocess
+ 
+ const
+-  Version = "0.9.14" # keep in sync with Nimble version. D'oh!
++  Version = "0.9.14-esp8266" # keep in sync with Nimble version. D'oh!
+   Usage = """
+-c2nim - C to Nim source converter
++c2nim_esp8266 - C to Nim source converter - for the esp8266 SDK
+   (c) 2016 Andreas Rumpf
+-Usage: c2nim [options] [optionfile(s)] inputfile(s) [options]
++Usage: c2nim_esp8266 [options] [optionfile(s)] inputfile(s) [options]
+   Optionfiles are C files with the 'c2nim' extension. These are parsed like
+   other C files but produce no output file.
+ Options:
+@@ -72,6 +75,7 @@
+   if isCpp: options.flags.incl pfCpp
+   openParser(p, infile, stream, options)
+   result = parseUnit(p).postprocess
++  result = esp8266_postprocess(result)
+   closeParser(p)
+   if isCpp: options.flags.excl pfCpp
+   if options.exportPrefix.len > 0:
