@@ -198,6 +198,26 @@ proc pp(n: var PNode, stmtList: PNode = nil, idx: int = -1, state: pp_state = {}
           delete(n.sons, i, i)
           break
     for i in 0 ..< n.safeLen: pp(n.sons[i], stmtList, idx, state)
+  of nkPragmaExpr:
+    # Flatten nkPragmaExpr and concatenate nkPragmas
+    var new_pragma_expr: PNode = nil
+    for i in 0 ..< n.safeLen:
+      if n[i].kind == nkPragmaExpr:
+        new_pragma_expr = copyNode(n)
+        break
+    if new_pragma_expr != nil:
+      for i in 0 ..< n.safeLen:
+        if n[i].kind == nkPragmaExpr:
+          for j in 0 ..< n[i].safeLen:
+            new_pragma_expr.addSon(n[i].sons[j])
+        else:
+          if n[i].kind == nkPragma and new_pragma_expr.sons[n[i].safeLen].kind == nkPragma:
+            for j in 0 ..< n[i].safeLen:
+              new_pragma_expr.sons[n[i].safeLen].addSon(n[i].sons[j])
+          else:
+            new_pragma_expr.addSon(n[i])
+      n = new_pragma_expr
+    for i in 0 ..< n.safeLen: pp(n.sons[i], stmtList, idx, state)
   of nkTypeDef:
     if n.safeLen >= 3 and n[2].kind == nkEnumTy:
       # Add importc and header pragma to enums
