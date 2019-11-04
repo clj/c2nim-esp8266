@@ -18,7 +18,33 @@ var
   params_declarations = initTable[string, Table[string, string]]()
   global_remove_pragma_header = false
 
+
+proc debug(n: PNode, level: int = 0) =
+  var val: string
+  case n.kind:
+  of nkCharLit..nkUInt64Lit:
+    val = $n.intVal
+  of nkFloatLit..nkFloat128Lit:
+    val = $n.floatVal
+  of nkStrLit..nkTripleStrLit:
+    val = $n.strVal
+  of nkSym:
+    val = $n.sym
+  of nkIdent:
+    val = n.ident.s
+  else:
+    discard
+  if val != "":
+    val = " (" & val & ")"
+
+  echo(spaces(level) & $n.kind & val)
+
+  for i in 0 ..< n.safeLen:
+    debug(n.sons[i], level + 1)
+
+
 proc getIdent(s: string): PIdent = getIdent(identCache, s)
+
 
 proc pp(n: var PNode, stmtList: PNode = nil, idx: int = -1, state: pp_state = {}) =
   case n.kind
