@@ -11,13 +11,21 @@ type
     remove_pragma_header
     is_neg
   pp_state = set[pp_states]
+  TDefaultType = enum
+    defaultTypeNone
+    defaultTypeAuto
+  TDefaultAs = enum
+    defaultAsTemplate
+    defaultAsProc
+    defaultAsType
 
 var
   as_declerations = initTable[string, TNodeKind]()
   returns_declerations = initTable[string, string]()
   params_declarations = initTable[string, Table[string, string]]()
   global_remove_pragma_header = false
-
+  default_type = defaultTypeAuto
+  default_as = defaultAsProc
 
 proc debug(n: PNode, level: int = 0) =
   var val: string
@@ -51,6 +59,8 @@ proc pp(n: var PNode, stmtList: PNode = nil, idx: int = -1, state: pp_state = {}
   of nkIntLit:
     # Mark all int literals in const declarations (`in_const`) with
     # 'u32 or 'i32 if the value is negative (`is_neg`)
+    if default_type == defaultTypeNone:
+      return
     if in_const in state:
       var node_type: TNodeKind
       if is_neg in state:
@@ -115,6 +125,8 @@ proc pp(n: var PNode, stmtList: PNode = nil, idx: int = -1, state: pp_state = {}
     if name in as_declerations:
       if as_declerations[name] != nkProcDef:
         return
+    elif default_as == defaultAsTemplate:
+      return
     # Pragmas
     let p = newNodeI(nkPragma, n.info)
     p.add(newNodeI(nkIdent, n.info))
@@ -186,6 +198,28 @@ proc pp(n: var PNode, stmtList: PNode = nil, idx: int = -1, state: pp_state = {}
           if not (args[1] in params_declarations):
             params_declarations[args[1]] = initTable[string, string]()
           params_declarations[args[1]][mapping[0]] = mapping[1]
+      # // #default KIND ...
+      let default_pos = line.find("#default")
+      if default_pos != -1:
+        let args = line[default_pos..^1].split(maxSplit=2)
+        case args[1]
+        # // #default type TYPE
+        of "type":
+          default_type = case args[2]
+            of "none": defaultTypeNone
+            of "auto": defaultTypeAuto
+            else:
+              raise newException(ValueError, "Unknown #default type: " & args[2])
+        # // #default as THING
+        of "as":
+          default_as = case args[2]
+            of "template": defaultAsTemplate
+            of "proc": defaultAsProc
+            of "type": defaultAsType
+            else:
+              raise newException(ValueError, "Unknown #default type: " & args[2])
+        else:
+          raise newException(ValueError, "Unknown #default kind: " & args[0])
     for i in 0 ..< n.safeLen: pp(n.sons[i], stmtList, idx, state)
   of nkObjectTy:
     # set `in_object` - so we know that we are in an object declaration
