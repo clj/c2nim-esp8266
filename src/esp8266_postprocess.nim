@@ -189,6 +189,7 @@ proc pp(n: var PNode, stmtList: PNode = nil, idx: int = -1, state: pp_state = {}
       if no_header_pos != -1:
         global_remove_pragma_header = true
       # // #params IDENT IDENT TYPE, IDENT TYPE, ...
+      # XXX: support var ..., ptr ... etc
       let params_pos = line.find("#params")
       if params_pos != -1:
         let args = line[params_pos..^1].split(maxSplit=2)
@@ -298,6 +299,7 @@ proc pp(n: var PNode, stmtList: PNode = nil, idx: int = -1, state: pp_state = {}
         let n = n[3][i]
         let ident = n.sons[0].ident.s
         if ident in mappings:
+          n.sons[1] = newNodeI(nkIdent, n.sons[1].info)
           n.sons[1].ident = getIdent(mappings[ident])
     for i in 0 ..< n.safeLen: pp(n.sons[i], stmtList, idx, state)
   else:
